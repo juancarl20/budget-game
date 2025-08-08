@@ -1,0 +1,303 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>The $40 Million Budget Challenge</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Lato:wght@400;700&family=Montserrat:wght@700&family=Open+Sans:wght@400;600&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Open Sans', sans-serif;
+            background-color: #2c3e50;
+            color: #ecf0f1;
+        }
+        .font-montserrat { font-family: 'Montserrat', sans-serif; }
+        .font-lato { font-family: 'Lato', sans-serif; }
+        .btn {
+            transition: all 0.3s ease;
+        }
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+        }
+        .card {
+            background-color: #34495e;
+            border-left: 5px solid #1abc9c;
+        }
+        .summary-card {
+            background-color: #34495e;
+            border-top: 5px solid #f1c40f;
+        }
+    </style>
+</head>
+<body class="flex items-center justify-center min-h-screen p-4">
+
+    <div id="game-container" class="w-full max-w-5xl mx-auto">
+
+        <!-- Start Screen -->
+        <div id="start-screen" class="text-center">
+            <h1 class="font-montserrat text-4xl md:text-5xl font-bold mb-4">The $40 Million Budget Challenge</h1>
+            <p class="font-lato text-lg md:text-xl mb-8 text-gray-300">You are the new leader of the law enforcement agency for 'View County.'<br> Population 100,000<br>Choose your Assigned Role.</p>
+            <div class="flex flex-col md:flex-row justify-center gap-6">
+                <button onclick="selectRole('chief')" class="btn bg-cyan-600 hover:bg-cyan-500 text-white font-bold py-4 px-8 rounded-lg shadow-lg text-2xl">
+                    Police Chief
+                    <span class="block text-sm font-normal mt-1">(Appointed by the Mayor)</span>
+                </button>
+                <button onclick="selectRole('sheriff')" class="btn bg-amber-500 hover:bg-amber-400 text-white font-bold py-4 px-8 rounded-lg shadow-lg text-2xl">
+                    County Sheriff
+                    <span class="block text-sm font-normal mt-1">(Elected by the People)</span>
+                </button>
+            </div>
+        </div>
+
+        <!-- Game Screen -->
+        <div id="game-screen" class="hidden">
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <!-- Left Column: Budget Menu -->
+                <div class="md:col-span-2">
+                    <h2 id="role-title" class="font-montserrat text-3xl font-bold mb-4">Your Department Budget</h2>
+                    <p id="role-directive" class="font-lato text-gray-300 mb-6"></p>
+                    <div id="budget-menu" class="space-y-4">
+                        <!-- Unit cards will be injected here by JS -->
+                    </div>
+                </div>
+
+                <!-- Right Column: Budget Summary -->
+                <div class="sticky top-6">
+                    <div class="bg-gray-800 p-6 rounded-lg shadow-2xl">
+                        <h3 class="font-montserrat text-2xl font-bold text-center mb-4">Annual Budget</h3>
+                        <div class="text-center mb-4">
+                            <p class="text-gray-400 text-sm">Remaining Budget</p>
+                            <p id="remaining-budget" class="font-montserrat text-4xl font-bold text-green-400">$40,000,000</p>
+                        </div>
+                        <div class="border-t border-gray-700 pt-4">
+                            <h4 class="font-lato font-bold text-lg mb-2 text-center">Funded Units</h4>
+                            <ul id="funded-units-list" class="space-y-2 text-sm">
+                                <!-- Funded units will be listed here -->
+                            </ul>
+                        </div>
+                        <button onclick="finishGame()" class="btn mt-6 w-full bg-green-600 hover:bg-green-500 text-white font-bold py-3 px-4 rounded-lg shadow-lg">Finish & Review</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Summary Screen -->
+        <div id="summary-screen" class="hidden text-center">
+             <h1 class="font-montserrat text-4xl md:text-5xl font-bold mb-4">Budget Analysis</h1>
+             <div id="summary-content" class="summary-card p-8 rounded-lg shadow-2xl max-w-3xl mx-auto text-left">
+                <!-- Summary content will be injected here -->
+             </div>
+             <button onclick="restartGame()" class="btn mt-8 bg-cyan-600 hover:bg-cyan-500 text-white font-bold py-3 px-6 rounded-lg shadow-lg">Play Again</button>
+        </div>
+
+    </div>
+
+    <script>
+        // --- GAME DATA ---
+        const units = [
+            { id: 'patrol', name: 'Patrol Unit (4 Officers)', cost: 500000 },
+            { id: 'detective', name: 'Detective (1 Investigator)', cost: 150000 },
+            { id: 'sro', name: 'School Resource Officer (4 High Schools, 5 Middle Schools, 15 Elementary)', cost: 120000 },
+            { id: 'community', name: 'Community Policing Unit (2 Officers)', cost: 300000 },
+            { id: 'pio', name: 'Public Information Officer (w/ Staff)', cost: 350000 },
+            { id: 'k9', name: 'K-9 Unit', cost: 180000 },
+            { id: 'swat', name: 'SWAT Team', cost: 250000 },
+            { id: 'csi', name: 'Crime Scene Investigation Unit', cost: 400000 },
+            { id: 'traffic', name: 'Traffic Unit (4 Officers)', cost: 400000 },
+            { id: 'animal', name: 'Animal Control (1 Handler)', cost: 75000 },
+            { id: 'airport', name: 'Airport Security (1 Officer)', cost: 150000 },
+            { id: 'bomb', name: 'Bomb Squad', cost: 500000 },
+            { id: 'jail', name: 'County Jail Operations', cost: 10000000, mandatory: true },
+            { id: 'courts', name: 'Courthouse Security', cost: 2000000, mandatory: true },
+            { id: 'communications', name: '911 Communications Center', cost: 1000000, mandatory: true }
+        ];
+
+        const initialBudget = 40000000;
+        let currentBudget = initialBudget;
+        let selectedRole = '';
+        let fundedUnits = {}; // Using an object to track counts
+
+        // --- DOM ELEMENTS ---
+        const startScreen = document.getElementById('start-screen');
+        const gameScreen = document.getElementById('game-screen');
+        const summaryScreen = document.getElementById('summary-screen');
+        const remainingBudgetEl = document.getElementById('remaining-budget');
+        const fundedUnitsListEl = document.getElementById('funded-units-list');
+        const budgetMenuEl = document.getElementById('budget-menu');
+
+        // --- HELPER FUNCTIONS ---
+        function formatCurrency(amount) {
+            return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', minimumFractionDigits: 0 }).format(amount);
+        }
+
+        function updateDisplay() {
+            // Update remaining budget display
+            remainingBudgetEl.textContent = formatCurrency(currentBudget);
+            if (currentBudget < 0) {
+                remainingBudgetEl.classList.remove('text-green-400');
+                remainingBudgetEl.classList.add('text-red-400');
+            } else {
+                remainingBudgetEl.classList.remove('text-red-400');
+                remainingBudgetEl.classList.add('text-green-400');
+            }
+
+            // Update funded units list
+            fundedUnitsListEl.innerHTML = '';
+            if (Object.keys(fundedUnits).length === 0) {
+                fundedUnitsListEl.innerHTML = '<li class="text-gray-500 italic">No units funded yet.</li>';
+            } else {
+                for (const unitId in fundedUnits) {
+                    const unit = units.find(u => u.id === unitId);
+                    const count = fundedUnits[unitId];
+                    const li = document.createElement('li');
+                    li.className = 'flex justify-between items-center bg-gray-700 p-2 rounded';
+                    li.innerHTML = `
+                        <span>${unit.name} ${count > 1 ? `(x${count})` : ''}</span>
+                        <span class="font-mono text-gray-400">${formatCurrency(unit.cost * count)}</span>
+                    `;
+                    fundedUnitsListEl.appendChild(li);
+                }
+            }
+        }
+
+        function populateMenu() {
+            budgetMenuEl.innerHTML = '';
+            units.forEach(unit => {
+                // Don't show mandatory units in the menu for the Sheriff, they are auto-funded
+                if (selectedRole === 'sheriff' && unit.mandatory) return;
+
+                const card = document.createElement('div');
+                card.className = 'card p-4 rounded-lg shadow-lg flex justify-between items-center';
+                card.innerHTML = `
+                    <div>
+                        <h4 class="font-lato font-bold text-lg">${unit.name}</h4>
+                        <p class="font-mono text-cyan-400">${formatCurrency(unit.cost)}</p>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <button onclick="removeUnit('${unit.id}')" class="btn bg-red-600 hover:bg-red-500 text-white font-bold h-8 w-8 rounded-full shadow-md">-</button>
+                        <button onclick="addUnit('${unit.id}')" class="btn bg-green-600 hover:bg-green-500 text-white font-bold h-8 w-8 rounded-full shadow-md">+</button>
+                    </div>
+                `;
+                budgetMenuEl.appendChild(card);
+            });
+        }
+
+        // --- GAME LOGIC ---
+        function selectRole(role) {
+            selectedRole = role;
+            startScreen.classList.add('hidden');
+            gameScreen.classList.remove('hidden');
+            
+            document.getElementById('remaining-budget').textContent = formatCurrency(initialBudget);
+
+            const roleTitleEl = document.getElementById('role-title');
+            const roleDirectiveEl = document.getElementById('role-directive');
+
+            if (role === 'chief') {
+                roleTitleEl.textContent = 'Police Chief\'s Budget';
+                roleDirectiveEl.textContent = 'Your new boss, the Mayor, has given you a clear directive: reduce street crime and improve the department\'s image in the community. You have the full $40 million to spend as you see fit.';
+            } else {
+                roleTitleEl.textContent = 'County Sheriff\'s Budget';
+                roleDirectiveEl.textContent = 'As the elected Sheriff, state law REQUIRES you to operate the County Jail, Courthouse Security, and 911 Communications. These have been funded first. You can spend whatever is left over on your other priorities.';
+                // Auto-fund mandatory units for Sheriff
+                const jail = units.find(u => u.id === 'jail');
+                const courts = units.find(u => u.id === 'courts');
+                const comms = units.find(u => u.id === 'communications');
+                currentBudget -= (jail.cost + courts.cost + comms.cost);
+                fundedUnits['jail'] = 1;
+                fundedUnits['courts'] = 1;
+                fundedUnits['communications'] = 1;
+            }
+            populateMenu();
+            updateDisplay();
+        }
+
+        function addUnit(unitId) {
+            const unit = units.find(u => u.id === unitId);
+            if (currentBudget >= unit.cost) {
+                currentBudget -= unit.cost;
+                fundedUnits[unitId] = (fundedUnits[unitId] || 0) + 1;
+                updateDisplay();
+            } else {
+                // Simple feedback, could be a modal
+                alert('Insufficient funds!');
+            }
+        }
+
+        function removeUnit(unitId) {
+            const unit = units.find(u => u.id === unitId);
+            // Prevent removing mandatory units for sheriff
+            if (selectedRole === 'sheriff' && unit.mandatory) {
+                 alert('Cannot remove mandatory units for the Sheriff role.');
+                 return;
+            }
+
+            if (fundedUnits[unitId] && fundedUnits[unitId] > 0) {
+                currentBudget += unit.cost;
+                fundedUnits[unitId] -= 1;
+                if (fundedUnits[unitId] === 0) {
+                    delete fundedUnits[unitId];
+                }
+                updateDisplay();
+            }
+        }
+
+        function finishGame() {
+            gameScreen.classList.add('hidden');
+            summaryScreen.classList.remove('hidden');
+
+            const summaryContentEl = document.getElementById('summary-content');
+            let summaryHTML = '';
+            let totalSpent = initialBudget - currentBudget;
+            
+            if (selectedRole === 'chief') {
+                let patrolBudget = (fundedUnits['patrol'] || 0) * units.find(u=>u.id==='patrol').cost;
+                let proactiveBudget = totalSpent - patrolBudget;
+                summaryHTML = `
+                    <h2 class="font-montserrat text-3xl font-bold mb-4">Role: Police Chief</h2>
+                    <p class="font-lato text-lg mb-6">As an appointed leader, your goal was to address the Mayor's directive to reduce street crime. You had the full <strong>${formatCurrency(initialBudget)}</strong> at your disposal.</p>
+                    <div class="text-left space-y-2 border-t border-b border-gray-600 py-4 my-4">
+                        <p><strong>Total Spent:</strong> ${formatCurrency(totalSpent)}</p>
+                        <p><strong>Spent on Patrol:</strong> ${formatCurrency(patrolBudget)}</p>
+                        <p><strong>Spent on Other Proactive Units (Detectives, K-9, etc.):</strong> ${formatCurrency(proactiveBudget)}</p>
+                    </div>
+                    <h3 class="font-lato font-bold text-xl mt-6 mb-2">Key Takeaway:</h3>
+                    <p class="text-gray-300">Your budget reflects a focus on proactive policing. Without mandatory expenses like a jail, you were free to allocate all your resources towards visible patrol, investigations, and community outreach to meet your boss's goals. Your accountability is to the Mayor and City Hall.</p>
+                `;
+            } else {
+                const mandatoryCosts = units.find(u=>u.id==='jail').cost + units.find(u=>u.id==='courts').cost + units.find(u=>u.id==='communications').cost;
+                let patrolBudget = (fundedUnits['patrol'] || 0) * units.find(u=>u.id==='patrol').cost;
+                let proactiveBudget = totalSpent - patrolBudget - mandatoryCosts;
+                summaryHTML = `
+                    <h2 class="font-montserrat text-3xl font-bold mb-4">Role: County Sheriff</h2>
+                    <p class="font-lato text-lg mb-6">As an elected official, you are bound by state law. You were required to spend <strong>${formatCurrency(mandatoryCosts)}</strong> on the Jail, Courthouse Security, and 911 Communications before making any other decisions.</p>
+                     <div class="text-left space-y-2 border-t border-b border-gray-600 py-4 my-4">
+                        <p><strong>Total Spent:</strong> ${formatCurrency(totalSpent)}</p>
+                        <p><strong>Mandatory Spending (Jail/Courts/911):</strong> ${formatCurrency(mandatoryCosts)}</p>
+                        <p><strong>Discretionary Funds Spent on Patrol:</strong> ${formatCurrency(patrolBudget)}</p>
+                        <p><strong>Discretionary Funds Spent on Other Units:</strong> ${formatCurrency(proactiveBudget)}</p>
+                    </div>
+                    <h3 class="font-lato font-bold text-xl mt-6 mb-2">Key Takeaway:</h3>
+                    <p class="text-gray-300">Notice how your discretionary budget was much smaller from the start. This structural reality dramatically limits a sheriff's ability to fund proactive policing compared to a police chief. Your accountability is to the voters, but your duties are defined by law.</p>
+                `;
+            }
+            summaryContentEl.innerHTML = summaryHTML;
+        }
+
+        function restartGame() {
+            currentBudget = initialBudget;
+            selectedRole = '';
+            fundedUnits = {};
+            summaryScreen.classList.add('hidden');
+            startScreen.classList.remove('hidden');
+            // No need to call updateDisplay here, it's called in selectRole
+        }
+
+    </script>
+
+</body>
+</html>
